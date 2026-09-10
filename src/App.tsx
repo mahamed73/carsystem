@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
+import LandingPage from './pages/LandingPage';
 import BookingPage from './pages/BookingPage';
 import AdminLayout from './pages/admin/AdminLayout';
 import DashboardHome from './pages/admin/DashboardHome';
@@ -16,10 +17,13 @@ function App() {
     <AppProvider>
       <HashRouter>
         <Routes>
-          {/* Customer Booking */}
-          <Route path="/" element={<BookingPage />} />
+          {/* Landing Page */}
+          <Route path="/" element={<LandingPage />} />
 
-          {/* Admin Dashboard */}
+          {/* Customer Booking - منفصلة تماماً */}
+          <Route path="/booking" element={<BookingPage />} />
+
+          {/* Admin Dashboard - مسار مستقل */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<DashboardHome />} />
             <Route path="bookings" element={<BookingsList />} />

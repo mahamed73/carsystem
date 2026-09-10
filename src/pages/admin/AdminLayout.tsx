@@ -78,7 +78,7 @@ export default function AdminLayout() {
               onClick={() => navigate('/')}
               className="w-full text-center text-xs text-gray-400 hover:text-white py-2"
             >
-              ← صفحة الحجز
+              ← الصفحة الرئيسية
             </button>
           </div>
         </div>

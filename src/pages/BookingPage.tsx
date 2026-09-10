@@ -202,12 +202,6 @@ export default function BookingPage() {
             >
               حجز جديد
             </button>
-            <a
-              href="#/admin"
-              className="block w-full text-center text-[#d4a853] hover:text-[#c9952c] py-2 text-sm font-medium transition-colors"
-            >
-              لوحة التحكم ←
-            </a>
           </div>
         </div>
       </div>
@@ -216,19 +210,6 @@ export default function BookingPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0f1a] py-8 px-4">
-      {/* Admin Link - Top Right */}
-      <div className="fixed top-4 left-4 z-50">
-        <a
-          href="#/admin"
-          className="flex items-center gap-2 bg-[#111827] border border-[#243044] hover:border-[#d4a853] text-white px-4 py-2 rounded-lg transition-all shadow-lg"
-        >
-          <span className="text-sm font-medium">لوحة التحكم</span>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-        </a>
-      </div>
-
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
