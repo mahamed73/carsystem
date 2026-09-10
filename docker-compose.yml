@@ -1,0 +1,78 @@
+# =====================================================================
+#  نشر نظام حجز صيانة السيارات على VPS:
+#    Caddy (HTTPS تلقائي) ← Next.js App ← PostgreSQL
+#
+#  التشغيل:  docker compose --env-file .env.docker up -d --build
+# =====================================================================
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: carsystem-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-carapp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?لازم تحدد POSTGRES_PASSWORD في .env.docker}
+      POSTGRES_DB: ${POSTGRES_DB:-carsystem}
+      TZ: Africa/Cairo
+      PGTZ: Africa/Cairo
+    command: ["postgres", "-c", "timezone=Africa/Cairo", "-c", "log_timezone=Africa/Cairo"]
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-carapp} -d ${POSTGRES_DB:-carsystem}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - backend
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: carsystem-app
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    environment:
+      NODE_ENV: production
+      TZ: Africa/Cairo
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      DATABASE_URL: postgresql://${POSTGRES_USER:-carapp}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-carsystem}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+      - web
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: carsystem-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?لازم تحدد DOMAIN في .env.docker}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
+      TZ: Africa/Cairo
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+    networks:
+      - web
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  backend:
+  web:
