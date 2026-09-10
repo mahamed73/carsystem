@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Booking, TimeSlot, Vehicle } from '../types';
 import { getAvailableSlots, getNextBookingNumber, addCustomer, getCustomers } from '../store';
 import { v4 as uuidv4 } from 'uuid';
-import { Check, ChevronLeft, ChevronRight, Calendar, Clock, Car, User, Wrench } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Calendar, Clock, Car, User, Wrench, Phone } from 'lucide-react';
 
 interface FormData {
   name: string;
@@ -43,6 +43,12 @@ export default function BookingPage() {
     if (!formData.name.trim()) newErrors.name = 'الاسم مطلوب';
     if (!formData.phone.trim()) newErrors.phone = 'رقم الجوال مطلوب';
     else if (!/^05\d{8}$/.test(formData.phone.trim())) newErrors.phone = 'رقم الجوال غير صحيح (يبدأ بـ 05)';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep2 = (): boolean => {
+    const newErrors: FormErrors = {};
     if (!formData.make.trim()) newErrors.make = 'نوع السيارة مطلوب';
     if (!formData.model.trim()) newErrors.model = 'الموديل مطلوب';
     if (!formData.year.trim()) newErrors.year = 'سنة الصنع مطلوبة';
@@ -51,14 +57,14 @@ export default function BookingPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const validateStep2 = (): boolean => {
+  const validateStep3 = (): boolean => {
     const newErrors: FormErrors = {};
     if (!formData.serviceId) newErrors.serviceId = 'يرجى اختيار الخدمة';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const validateStep3 = (): boolean => {
+  const validateStep4 = (): boolean => {
     const newErrors: FormErrors = {};
     if (!formData.date) newErrors.date = 'يرجى اختيار التاريخ';
     if (!formData.time) newErrors.time = 'يرجى اختيار الوقت';
@@ -70,6 +76,7 @@ export default function BookingPage() {
     if (step === 1 && validateStep1()) setStep(2);
     else if (step === 2 && validateStep2()) setStep(3);
     else if (step === 3 && validateStep3()) setStep(4);
+    else if (step === 4 && validateStep4()) setStep(5);
   };
 
   const handleBack = () => {
@@ -120,7 +127,7 @@ export default function BookingPage() {
     }
 
     setConfirmedBooking(booking);
-    setStep(5);
+    setStep(6);
   };
 
   const handleNewBooking = () => {
@@ -148,7 +155,7 @@ export default function BookingPage() {
   // Get minimum date (today)
   const minDate = new Date().toISOString().split('T')[0];
 
-  if (step === 5 && confirmedBooking) {
+  if (step === 6 && confirmedBooking) {
     return (
       <div className="min-h-screen bg-[#0a0f1a] flex items-center justify-center p-4">
         <div className="max-w-lg w-full bg-[#111827] rounded-2xl p-8 border border-[#243044]">
@@ -219,14 +226,14 @@ export default function BookingPage() {
 
         {/* Progress Steps */}
         <div className="flex items-center justify-center mb-8 gap-2">
-          {[1, 2, 3, 4].map((s) => (
+          {[1, 2, 3, 4, 5].map((s) => (
             <React.Fragment key={s}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                 step >= s ? 'bg-[#d4a853] text-[#0a0f1a]' : 'bg-[#243044] text-gray-400'
               }`}>
                 {step > s ? <Check className="w-4 h-4" /> : s}
               </div>
-              {s < 4 && <div className={`w-8 h-0.5 ${step > s ? 'bg-[#d4a853]' : 'bg-[#243044]'}`} />}
+              {s < 5 && <div className={`w-6 h-0.5 ${step > s ? 'bg-[#d4a853]' : 'bg-[#243044]'}`} />}
             </React.Fragment>
           ))}
         </div>
@@ -237,32 +244,46 @@ export default function BookingPage() {
             <div>
               <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                 <User className="w-5 h-5 text-[#d4a853]" />
-                بيانات العميل والسيارة
+                تسجيل الدخول
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">اسم العميل *</label>
+                  <label className="block text-sm text-gray-400 mb-1">الاسم الكامل *</label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     className="w-full bg-[#1a2332] border border-[#243044] rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-[#d4a853] focus:outline-none"
-                    placeholder="الاسم الكامل"
+                    placeholder="أدخل اسمك الكامل"
                   />
                   {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">رقم الجوال *</label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="w-full bg-[#1a2332] border border-[#243044] rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-[#d4a853] focus:outline-none"
-                    placeholder="05xxxxxxxx"
-                    dir="ltr"
-                  />
+                  <div className="relative">
+                    <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      className="w-full bg-[#1a2332] border border-[#243044] rounded-lg pr-10 pl-4 py-3 text-white placeholder-gray-500 focus:border-[#d4a853] focus:outline-none"
+                      placeholder="05xxxxxxxx"
+                      dir="ltr"
+                    />
+                  </div>
                   {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone}</p>}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div>
+              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <Car className="w-5 h-5 text-[#d4a853]" />
+                بيانات السيارة
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">نوع السيارة *</label>
                   <input
@@ -312,7 +333,7 @@ export default function BookingPage() {
             </div>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <div>
               <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                 <Wrench className="w-5 h-5 text-[#d4a853]" />
@@ -345,7 +366,7 @@ export default function BookingPage() {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div>
               <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-[#d4a853]" />
@@ -398,7 +419,7 @@ export default function BookingPage() {
             </div>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <div>
               <h2 className="text-xl font-bold text-white mb-6">تأكيد الحجز</h2>
               <div className="bg-[#1a2332] rounded-xl p-4 space-y-4">
@@ -446,7 +467,7 @@ export default function BookingPage() {
               </button>
             ) : <div />}
 
-            {step < 4 ? (
+            {step < 5 ? (
               <button
                 onClick={handleNext}
                 className="flex items-center gap-2 bg-[#d4a853] hover:bg-[#c9952c] text-[#0a0f1a] font-bold px-6 py-3 rounded-xl transition-colors"

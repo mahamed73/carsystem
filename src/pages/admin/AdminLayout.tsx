@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Calendar, ClipboardList, Users, Wrench,
   Settings, Menu, X, Clock
@@ -17,7 +17,6 @@ const navItems = [
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-[#0a0f1a] flex">
@@ -72,15 +71,6 @@ export default function AdminLayout() {
             ))}
           </nav>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-[#243044]">
-            <button
-              onClick={() => navigate('/')}
-              className="w-full text-center text-xs text-gray-400 hover:text-white py-2"
-            >
-              ← الصفحة الرئيسية
-            </button>
-          </div>
         </div>
       </aside>
 
