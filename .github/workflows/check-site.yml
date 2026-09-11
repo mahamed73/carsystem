@@ -1,7 +1,7 @@
 name: فحص الموقع
 
-# يفحص الموقع المنشور على الدومين من خارج السيرفر (من بنية GitHub)
-# ويعرض تقريراً كاملاً: DNS، HTTPS، الشهادة، الصفحات الرئيسية، وواجهة المواعيد.
+# يفحص الموقع المنشور على الدومين من خارج السيرفر (من بنية GitHub) ويحفظ التقرير
+# في reports/check-latest.md على نفس الفرع حتى يمكن قراءته من أي مكان.
 #
 # يُشغَّل عند الرفع برسالة تحتوي [check] أو يدوياً من تبويب Actions.
 
@@ -11,6 +11,9 @@ on:
       - arena/01a08cd4-carsystem
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   check:
     if: >-
@@ -19,57 +22,79 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
       - name: فحص الدومين والموقع
         run: |
           DOMAIN="carsys.easychat.cloud"
-          echo "════════════════════════════════════"
-          echo "   تقرير فحص الموقع: $DOMAIN"
-          echo "   التاريخ: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-          echo "════════════════════════════════════"
+          mkdir -p reports
+          {
+            echo "# تقرير فحص الموقع — $DOMAIN"
+            echo ""
+            echo "- التاريخ: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo ""
 
-          echo ""
-          echo "── 1) سجلات DNS ──"
-          getent hosts "$DOMAIN" || echo "  ✖ لا يوجد سجل DNS"
+            echo "## 1) سجلات DNS"
+            echo '```'
+            getent hosts "$DOMAIN" || echo "✖ لا يوجد سجل DNS"
+            echo '```'
+            echo ""
 
-          echo ""
-          echo "── 2) الصفحة الرئيسية (HTTPS) ──"
-          HTTP=$(curl -sS -o /tmp/home.html -w '%{http_code}' --max-time 30 "https://$DOMAIN/" 2>&1 || echo "000")
-          echo "  كود الاستجابة: $HTTP"
-          if [ "$HTTP" = "200" ]; then
-            echo "  ✅ الموقع يعمل"
-            echo "  حجم الصفحة: $(wc -c < /tmp/home.html) بايت"
-            echo "  العنوان: $(grep -o '<title>[^<]*</title>' /tmp/home.html | head -1)"
-            echo "  اسم الورشة ظاهر: $(grep -c 'مركز الصيانة الذكي' /tmp/home.html || echo 0) مرة"
-            echo "  معالج الحجز موجود: $(grep -c 'booking-wizard' /tmp/home.html || echo 0)"
+            echo "## 2) الصفحة الرئيسية (HTTPS)"
+            HTTP=$(curl -sS -o /tmp/home.html -w '%{http_code}' --max-time 30 "https://$DOMAIN/" 2>/dev/null || echo "000")
+            echo "- كود الاستجابة: **$HTTP**"
+            if [ "$HTTP" = "200" ]; then
+              echo "- الحجم: $(wc -c < /tmp/home.html) بايت"
+              echo "- العنوان: $(grep -o '<title>[^<]*</title>' /tmp/home.html | head -1)"
+              echo "- اسم الورشة ظاهر: $(grep -c 'مركز الصيانة الذكي' /tmp/home.html || true) مرة"
+              echo "- معالج الحجز: $(grep -c 'booking-wizard' /tmp/home.html || true) مرة"
+            fi
+            echo ""
+
+            echo "## 3) بقية الصفحات"
+            echo '```'
+            printf '/login  → HTTP %s\n' "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://$DOMAIN/login 2>/dev/null || echo 000)"
+            printf '/track  → HTTP %s\n' "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://$DOMAIN/track 2>/dev/null || echo 000)"
+            printf '/admin  → HTTP %s\n' "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://$DOMAIN/admin 2>/dev/null || echo 000)"
+            echo '```'
+            echo ""
+
+            echo "## 4) واجهة المواعيد المتاحة"
+            DATE=$(date -d '+3 days' +%F)
+            BODY=$(curl -sS --max-time 25 "https://$DOMAIN/api/slots?date=$DATE&service=1" 2>/dev/null || echo '{}')
+            echo "- التاريخ المفحوص: $DATE"
+            echo "- عدد المواعيد: **$(echo "$BODY" | grep -o '"time"' | wc -l)**"
+            echo '```json'
+            echo "$BODY" | head -c 400
+            echo ""
+            echo '```'
+            echo ""
+
+            echo "## 5) شهادة SSL"
+            echo '```'
+            echo | timeout 25 openssl s_client -connect "$DOMAIN:443" -servername "$DOMAIN" 2>/dev/null \
+              | openssl x509 -noout -subject -issuer -dates 2>/dev/null || echo "⚠️ تعذّر قراءة الشهادة"
+            echo '```'
+            echo ""
+
+            echo "## الخلاصة"
+            if [ "$HTTP" = "200" ]; then
+              echo "✅ **الموقع يعمل بنجاح على https://$DOMAIN**"
+            else
+              echo "❌ **الموقع لا يستجيب (HTTP $HTTP)** — تحقق من النشر على السيرفر"
+            fi
+          } | tee reports/check-latest.md
+
+      - name: حفظ التقرير في المستودع
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f reports/check-latest.md
+          if git diff --cached --quiet; then
+            echo "لا يوجد تغيير في التقرير"
           else
-            echo "  ⚠️ الموقع لا يستجيب بشكل صحيح"
+            git commit -m "تقرير فحص الموقع (تلقائي)"
+            git push origin HEAD:${{ github.ref_name }} || echo "⚠️ تعذّر رفع التقرير"
           fi
-
-          echo ""
-          echo "── 3) صفحة تسجيل الدخول ──"
-          curl -sS -o /dev/null -w '  /login → HTTP %{http_code}\n' --max-time 20 "https://$DOMAIN/login" || true
-
-          echo ""
-          echo "── 4) صفحة تتبع الحجز ──"
-          curl -sS -o /dev/null -w '  /track → HTTP %{http_code}\n' --max-time 20 "https://$DOMAIN/track" || true
-
-          echo ""
-          echo "── 5) واجهة المواعيد المتاحة ──"
-          DATE=$(date -d '+3 days' +%F)
-          BODY=$(curl -sS --max-time 20 "https://$DOMAIN/api/slots?date=$DATE&service=1" || echo '{}')
-          echo "  الاستجابة: $(echo "$BODY" | head -c 220)"
-          echo "  عدد المواعيد: $(echo "$BODY" | grep -o '"time"' | wc -l)"
-
-          echo ""
-          echo "── 6) حماية لوحة التحكم (يجب أن يحوّل لصفحة الدخول) ──"
-          curl -sS -o /dev/null -w '  /admin → HTTP %{http_code} (تحويل: %{redirect_url})\n' --max-time 20 "https://$DOMAIN/admin" || true
-
-          echo ""
-          echo "── 7) شهادة SSL ──"
-          echo | timeout 25 openssl s_client -connect "$DOMAIN:443" -servername "$DOMAIN" 2>/dev/null \
-            | openssl x509 -noout -subject -issuer -dates 2>/dev/null || echo "  ⚠️ تعذّر قراءة الشهادة"
-
-          echo ""
-          echo "════════════════════════════════════"
-          echo "   انتهى الفحص"
-          echo "════════════════════════════════════"
