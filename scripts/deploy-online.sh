@@ -4,6 +4,9 @@
 #  يُنفَّذ على السيرفر بمستخدم root، ويتولى: تجهيز الأدوات ← سحب الكود
 #  ← تشغيل سكربت النشر الكامل (Docker + HTTPS تلقائي).
 #
+#  معاينة بدون أي تغيير:
+#     DRY_RUN=true curl -fsSL .../scripts/deploy-online.sh | bash
+#
 #  الاستخدام (أمر واحد):
 #     curl -fsSL https://raw.githubusercontent.com/mahamed73/carsystem/arena/01a08cd4-carsystem/scripts/deploy-online.sh | bash
 #
@@ -64,4 +67,5 @@ cd "$APP_DIR"
 
 head2 "بدء النشر الكامل (Docker + قاعدة البيانات + HTTPS)"
 exec env DOMAIN="$DOMAIN" ACME_EMAIL="$ACME_EMAIL" ADMIN_EMAIL="$ADMIN_EMAIL" \
+  DRY_RUN="${DRY_RUN:-false}" \
   bash scripts/deploy-remote.sh

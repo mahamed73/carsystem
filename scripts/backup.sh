@@ -26,7 +26,7 @@ FILE="$BACKUP_DIR/carsystem_${STAMP}.sql.gz"
 
 echo "▶ إنشاء نسخة احتياطية: $FILE"
 if command -v docker >/dev/null 2>&1; then
-  docker compose --env-file "$ENV_FILE" exec -T db \
+  docker compose -p carsystem --env-file "$ENV_FILE" exec -T db \
     pg_dump -U "${POSTGRES_USER:-carapp}" -d "${POSTGRES_DB:-carsystem}" --clean --if-exists \
     | gzip -9 > "$FILE"
 else
@@ -43,4 +43,4 @@ echo "✅ انتهى"
 
 echo ""
 echo "لاستعادة نسخة:"
-echo "  gunzip -c $FILE | docker compose --env-file .env.docker exec -T db psql -U ${POSTGRES_USER:-carapp} -d ${POSTGRES_DB:-carsystem}"
+echo "  gunzip -c $FILE | docker compose -p carsystem --env-file .env.docker exec -T db psql -U ${POSTGRES_USER:-carapp} -d ${POSTGRES_DB:-carsystem}"
