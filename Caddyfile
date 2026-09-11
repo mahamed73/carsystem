@@ -1,18 +1,17 @@
 # =====================================================================
 #  إعداد Caddy — HTTPS تلقائي عبر Let's Encrypt
-#  عدّل DOMAIN و ACME_EMAIL من ملف .env.docker (لا من هنا)
+#  قيمة DOMAIN تأتي من .env.docker:
+#     - دومين (cars.example.com)  → الموقع يعمل بـ HTTPS تلقائياً
+#     - :80                        → وضع بدون دومين (HTTP على IP السيرفر)
 # =====================================================================
 
 {
 	email {$ACME_EMAIL}
-	# لو الدومين لسه مش موجّه للـ IP، شيل التعليق عن السطر التالي مؤقتاً للتجربة:
-	# auto_https off
 }
 
 {$DOMAIN} {
-	encode zstd gzip
+	encode gzip
 
-	# ترويسات أمنية
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
@@ -21,15 +20,8 @@
 		-Server
 	}
 
-	# رفع حجم الطلبات (لاستيراد البيانات مستقبلاً)
-	request_body {
-		max_size 5MB
-	}
-
 	reverse_proxy app:3000 {
 		header_up X-Real-IP {remote_host}
-		health_uri /
-		health_interval 30s
 	}
 
 	log {
@@ -40,8 +32,3 @@
 		format console
 	}
 }
-
-# لو عايز الدومين www يعمل كذلك، أضف سجل DNS من نوع A للـ www ثم شيل التعليق:
-# www.{$DOMAIN} {
-# 	redir https://{$DOMAIN}{uri} permanent
-# }
