@@ -79,6 +79,26 @@ jobs:
             echo '```'
             echo ""
 
+            echo "## 6) استكشاف السيرفر الحالي (مهم: لا نريد تعطيل مواقع قائمة)"
+            echo '```'
+            echo "--- www/clinic1.easychat.cloud ---"
+            curl -sS -o /dev/null -D - --max-time 20 https://clinic1.easychat.cloud/ 2>&1 | head -12 || echo "لا استجابة"
+            echo ""
+            echo "--- الكود الفعلي لموقع العيادة ---"
+            printf 'https://clinic1.easychat.cloud → HTTP %s\n' "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://clinic1.easychat.cloud/ 2>/dev/null || echo 000)"
+            printf 'http://clinic1.easychat.cloud  → HTTP %s\n' "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 http://clinic1.easychat.cloud/ 2>/dev/null || echo 000)"
+            echo ""
+            echo "--- apex easychat.cloud ---"
+            printf 'https://easychat.cloud → HTTP %s (server: %s)\n' "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://easychat.cloud/ 2>/dev/null || echo 000)" "$(curl -sSI --max-time 20 https://easychat.cloud/ 2>/dev/null | grep -i '^server:' | head -1)"
+            echo ""
+            echo "--- http://carsys.easychat.cloud (المنفذ 80) ---"
+            curl -sS -o /dev/null -D - --max-time 20 http://carsys.easychat.cloud/ 2>&1 | head -12 || echo "لا استجابة على 80"
+            echo ""
+            echo "--- https://carsys مع تجاهل الشهادة (-k) ---"
+            curl -sSk -o /dev/null -D - --max-time 20 https://carsys.easychat.cloud/ 2>&1 | head -12 || echo "لا استجابة"
+            echo '```'
+            echo ""
+
             echo "## الخلاصة"
             if [ "$HTTP" = "200" ]; then
               echo "✅ **الموقع يعمل بنجاح على https://$DOMAIN**"
