@@ -1,0 +1,120 @@
+name: فحص الموقع
+
+# يفحص الموقع المنشور على الدومين من خارج السيرفر (من بنية GitHub) ويحفظ التقرير
+# في reports/check-latest.md على نفس الفرع حتى يمكن قراءته من أي مكان.
+#
+# يُشغَّل عند الرفع برسالة تحتوي [check] أو يدوياً من تبويب Actions.
+
+on:
+  push:
+    branches:
+      - arena/01a08cd4-carsystem
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[check]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: فحص الدومين والموقع
+        run: |
+          DOMAIN="carsys.easychat.cloud"
+          mkdir -p reports
+          {
+            echo "# تقرير فحص الموقع — $DOMAIN"
+            echo ""
+            echo "- التاريخ: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo ""
+
+            echo "## 1) سجلات DNS"
+            echo '```'
+            getent hosts "$DOMAIN" || echo "✖ لا يوجد سجل DNS"
+            echo '```'
+            echo ""
+
+            echo "## 2) الصفحة الرئيسية (HTTPS)"
+            HTTP=$(curl -sS -o /tmp/home.html -w '%{http_code}' --max-time 30 "https://$DOMAIN/" 2>/dev/null || echo "000")
+            echo "- كود الاستجابة: **$HTTP**"
+            if [ "$HTTP" = "200" ]; then
+              echo "- الحجم: $(wc -c < /tmp/home.html) بايت"
+              echo "- العنوان: $(grep -o '<title>[^<]*</title>' /tmp/home.html | head -1)"
+              echo "- اسم الورشة ظاهر: $(grep -c 'مركز الصيانة الذكي' /tmp/home.html || true) مرة"
+              echo "- معالج الحجز: $(grep -c 'booking-wizard' /tmp/home.html || true) مرة"
+            fi
+            echo ""
+
+            echo "## 3) بقية الصفحات"
+            echo '```'
+            printf '/login  → HTTP %s\n' "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://$DOMAIN/login 2>/dev/null || echo 000)"
+            printf '/track  → HTTP %s\n' "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://$DOMAIN/track 2>/dev/null || echo 000)"
+            printf '/admin  → HTTP %s\n' "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://$DOMAIN/admin 2>/dev/null || echo 000)"
+            echo '```'
+            echo ""
+
+            echo "## 4) واجهة المواعيد المتاحة"
+            DATE=$(date -d '+3 days' +%F)
+            BODY=$(curl -sS --max-time 25 "https://$DOMAIN/api/slots?date=$DATE&service=1" 2>/dev/null || echo '{}')
+            echo "- التاريخ المفحوص: $DATE"
+            echo "- عدد المواعيد: **$(echo "$BODY" | grep -o '"time"' | wc -l)**"
+            echo '```json'
+            echo "$BODY" | head -c 400
+            echo ""
+            echo '```'
+            echo ""
+
+            echo "## 5) شهادة SSL"
+            echo '```'
+            echo | timeout 25 openssl s_client -connect "$DOMAIN:443" -servername "$DOMAIN" 2>/dev/null \
+              | openssl x509 -noout -subject -issuer -dates 2>/dev/null || echo "⚠️ تعذّر قراءة الشهادة"
+            echo '```'
+            echo ""
+
+            echo "## 6) استكشاف السيرفر الحالي (مهم: لا نريد تعطيل مواقع قائمة)"
+            echo '```'
+            echo "--- www/clinic1.easychat.cloud ---"
+            curl -sS -o /dev/null -D - --max-time 20 https://clinic1.easychat.cloud/ 2>&1 | head -12 || echo "لا استجابة"
+            echo ""
+            echo "--- الكود الفعلي لموقع العيادة ---"
+            printf 'https://clinic1.easychat.cloud → HTTP %s\n' "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://clinic1.easychat.cloud/ 2>/dev/null || echo 000)"
+            printf 'http://clinic1.easychat.cloud  → HTTP %s\n' "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 http://clinic1.easychat.cloud/ 2>/dev/null || echo 000)"
+            echo ""
+            echo "--- apex easychat.cloud ---"
+            printf 'https://easychat.cloud → HTTP %s (server: %s)\n' "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://easychat.cloud/ 2>/dev/null || echo 000)" "$(curl -sSI --max-time 20 https://easychat.cloud/ 2>/dev/null | grep -i '^server:' | head -1)"
+            echo ""
+            echo "--- http://carsys.easychat.cloud (المنفذ 80) ---"
+            curl -sS -o /dev/null -D - --max-time 20 http://carsys.easychat.cloud/ 2>&1 | head -12 || echo "لا استجابة على 80"
+            echo ""
+            echo "--- https://carsys مع تجاهل الشهادة (-k) ---"
+            curl -sSk -o /dev/null -D - --max-time 20 https://carsys.easychat.cloud/ 2>&1 | head -12 || echo "لا استجابة"
+            echo '```'
+            echo ""
+
+            echo "## الخلاصة"
+            if [ "$HTTP" = "200" ]; then
+              echo "✅ **الموقع يعمل بنجاح على https://$DOMAIN**"
+            else
+              echo "❌ **الموقع لا يستجيب (HTTP $HTTP)** — تحقق من النشر على السيرفر"
+            fi
+          } | tee reports/check-latest.md
+
+      - name: حفظ التقرير في المستودع
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f reports/check-latest.md
+          if git diff --cached --quiet; then
+            echo "لا يوجد تغيير في التقرير"
+          else
+            git commit -m "تقرير فحص الموقع (تلقائي)"
+            git push origin HEAD:${{ github.ref_name }} || echo "⚠️ تعذّر رفع التقرير"
+          fi
