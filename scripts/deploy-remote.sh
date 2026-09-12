@@ -18,7 +18,7 @@
 set -euo pipefail
 
 REPO_URL="${REPO_URL:-https://github.com/mahamed73/carsystem.git}"
-BRANCH="${BRANCH:-arena/01a08cd4-carsystem}"
+BRANCH="${BRANCH:-main}"
 APP_DIR="${APP_DIR:-/root/carsystem}"
 PROJECT="carsystem"
 

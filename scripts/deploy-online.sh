@@ -8,7 +8,7 @@
 #     DRY_RUN=true curl -fsSL .../scripts/deploy-online.sh | bash
 #
 #  الاستخدام (أمر واحد):
-#     curl -fsSL https://raw.githubusercontent.com/mahamed73/carsystem/arena/01a08cd4-carsystem/scripts/deploy-online.sh | bash
+#     curl -fsSL https://raw.githubusercontent.com/mahamed73/carsystem/main/scripts/deploy-online.sh | bash
 #
 #  ويمكن التحكم بالإعدادات عبر متغيرات البيئة قبل التشغيل:
 #     DOMAIN=carsys.easychat.cloud ACME_EMAIL=admin@easychat.cloud \
@@ -18,7 +18,7 @@
 set -euo pipefail
 
 REPO_URL="${REPO_URL:-https://github.com/mahamed73/carsystem.git}"
-BRANCH="${BRANCH:-arena/01a08cd4-carsystem}"
+BRANCH="${BRANCH:-main}"
 APP_DIR="${APP_DIR:-/root/carsystem}"
 
 DOMAIN="${DOMAIN:-carsys.easychat.cloud}"

@@ -8,7 +8,7 @@ name: فحص الموقع
 on:
   push:
     branches:
-      - arena/01a08cd4-carsystem
+      - main
   workflow_dispatch:
 
 permissions:

@@ -79,18 +79,18 @@ ssh root@187.77.71.18
 **الخطوة 1 — معاينة (اختيارية لكن موصى بها، لا تُغيّر أي شيء إطلاقاً):**
 
 ```bash
-DRY_RUN=true curl -fsSL https://raw.githubusercontent.com/mahamed73/carsystem/arena/01a08cd4-carsystem/scripts/deploy-online.sh | bash
+DRY_RUN=true curl -fsSL https://raw.githubusercontent.com/mahamed73/carsystem/main/scripts/deploy-online.sh | bash
 ```
 
 **الخطوة 2 — النشر الفعلي:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mahamed73/carsystem/arena/01a08cd4-carsystem/scripts/deploy-online.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mahamed73/carsystem/main/scripts/deploy-online.sh | bash
 ```
 
 > **بديل** (لو تحب تراجع السكربت قبل تشغيله):
 > ```bash
-> git clone --depth=1 --branch arena/01a08cd4-carsystem https://github.com/mahamed73/carsystem.git /root/carsystem
+> git clone --depth=1 https://github.com/mahamed73/carsystem.git /root/carsystem
 > bash /root/carsystem/scripts/deploy-remote.sh
 > ```
 
